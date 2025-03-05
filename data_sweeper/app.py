@@ -13,18 +13,28 @@ if uploaded_files:
     for file in uploaded_files:
         file_ext = os.path.splitext(file.name)[-1].lower()
 
-        if file_ext == ".csv":
-            df = pd.read_csv(file)
-        elif file_ext == ".xlsx":
-            df = pd.read_excel(file)
-        else:
-            st.warning(f"Unsupported file format: {file.name}")
+        # Read file based on extension
+        try:
+            if file_ext == ".csv":
+                df = pd.read_csv(file)
+            elif file_ext == ".xlsx":
+                df = pd.read_excel(file, engine="openpyxl")
+            else:
+                st.warning(f"Unsupported file format: {file.name}")
+                continue
+        except Exception as e:
+            st.error(f"Error reading {file.name}: {e}")
             continue
 
-        st.write(f"**File Name:** {file.name}")
-        st.write(f"**File Size:** {file.size / 1024:.2f} KB")
+        # File size calculation (for BytesIO objects)
+        file.seek(0, os.SEEK_END)
+        file_size_kb = file.tell() / 1024
+        file.seek(0)  # Reset file pointer after size calculation
 
-        st.write("preview the head of the dataframe")
+        st.write(f"**File Name:** {file.name}")
+        st.write(f"**File Size:** {file_size_kb:.2f} KB")
+
+        st.write("### Preview (first 5 rows)")
         st.dataframe(df.head())
 
         # st.subheader("Data Cleaning Options")
@@ -34,20 +44,22 @@ if uploaded_files:
         #     with col1:
         #         if st.button(f"Remove duplicates from {file.name}"):
         #             df.drop_duplicates(inplace=True)
-        #             st.write("Duplicates removed")
+        #             st.write("✅ Duplicates removed")
             
         #     with col2:
         #         if st.button(f"Fill missing values in {file.name}"):
         #             numeric_cols = df.select_dtypes(include=['number']).columns
         #             df[numeric_cols] = df[numeric_cols].fillna(df[numeric_cols].mean())
-        #             st.write("Missing values filled with column mean")
+        #             st.write("✅ Missing values filled with column mean")
 
-        #     st.subheader("select columns to convert")
-        #     columns = st.multiselect(f"choose colums for {file.name}", df.columns, default=df.columns)
-        #     df=df[columns]
+        #     st.subheader("Select Columns to Convert")
+        #     columns = st.multiselect(f"Choose columns for {file.name}", df.columns, default=df.columns)
+        #     df = df[columns]
 
-
-        #     st.subheader("Data visualization")
-        #     if st.checkbox(f"show visualization for {file.name}"):
-        #         st.bar_chart(df.select_dtypes(include='number').iloc[:,:2])
-                
+        # st.subheader("Data Visualization")
+        # if st.checkbox(f"Show visualization for {file.name}"):
+        #     numeric_df = df.select_dtypes(include='number')
+        #     if not numeric_df.empty:
+        #         st.bar_chart(numeric_df.iloc[:, :2])  # Show first 2 numeric columns
+        #     else:
+        #         st.warning("No numeric data available for visualization.")
